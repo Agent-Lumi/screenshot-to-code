@@ -817,11 +817,27 @@ function downloadCode() {
     showToast('File downloaded!', 'success');
 }
 
-// Theme management
+// Theme management with system preference detection
 function loadTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Default to system preference if no saved theme
+    const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+    
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    themeToggle.title = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            const newTheme = e.matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            themeToggle.title = newTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+        }
+    });
 }
 
 function toggleTheme() {
@@ -831,6 +847,16 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    themeToggle.title = newTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    
+    // Show theme change indicator
+    const indicator = document.getElementById('themeIndicator');
+    indicator.textContent = newTheme === 'dark' ? '🌙 Dark mode enabled' : '☀️ Light mode enabled';
+    indicator.classList.add('visible');
+    setTimeout(() => indicator.classList.remove('visible'), 2000);
+    
+    // Announce for accessibility
+    showToast(newTheme === 'dark' ? '🌙 Dark mode enabled' : '☀️ Light mode enabled', 'info');
 }
 
 // Modal management

@@ -23,6 +23,14 @@
     --transition: all 0.2s ease;
 }
 
+/* Smooth theme transitions for all elements */
+*, *::before, *::after {
+    transition: background-color 0.3s ease, 
+                color 0.3s ease, 
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
 /* Light mode */
 [data-theme="light"] {
     --bg-primary: #ffffff;
@@ -45,6 +53,65 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* No transition on theme toggle itself for snappy feel */
+#themeToggle, #themeToggle * {
+    transition: none !important;
+}
+
+/* Enhanced Theme Toggle */
+#themeToggle {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    overflow: hidden;
+}
+
+#themeToggle:hover {
+    transform: rotate(15deg);
+}
+
+#themeToggle::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 50%;
+}
+
+#themeToggle:hover::before {
+    opacity: 0.15;
+}
+
+/* Theme indicator */
+.theme-indicator {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 200;
+    pointer-events: none;
+}
+
+.theme-indicator.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
 }
 
 html {

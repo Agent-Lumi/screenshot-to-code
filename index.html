@@ -104,10 +104,12 @@
                         <button class="tab-btn active" data-tab="code">💻 Code</button>
                         <button class="tab-btn" data-tab="preview">👁️ Preview</button>
                         <button class="tab-btn" data-tab="colors" id="colorsTab" hidden>🎨 Colors</button>
+                        <button class="tab-btn" data-tab="history">📜 History</button>
                     </div>
                     <div class="result-actions">
                         <button class="btn btn-icon" id="copyBtn" title="Copy to Clipboard">📋</button>
                         <button class="btn btn-icon" id="downloadBtn" title="Download File">💾</button>
+                        <button class="btn btn-icon" id="exportBtn" title="Export Options">📤</button>
                     </div>
                 </div>
 
@@ -128,6 +130,16 @@
                     
                     <div class="tab-panel" id="colorsPanel">
                         <div class="colors-grid" id="colorsGrid"></div>
+                    </div>
+
+                    <div class="tab-panel" id="historyPanel">
+                        <div class="history-header">
+                            <h4>Recent Generations</h4>
+                            <button class="btn btn-sm btn-secondary" id="clearHistoryBtn">🗑️ Clear</button>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <p class="history-empty">No history yet. Generate some code to see it here! ✨</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -177,6 +189,53 @@
                     <kbd>Ctrl</kbd> + <kbd>?</kbd>
                     <span>Show this help</span>
                 </div>
+                <div class="shortcut-row">
+                    <kbd>Ctrl</kbd> + <kbd>E</kbd>
+                    <span>Export options</span>
+                </div>
+                <div class="shortcut-row">
+                    <kbd>Esc</kbd>
+                    <span>Close modals / Reset</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📤 Export Options</h3>
+                <button class="modal-close" id="closeExportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button class="export-option" data-format="html">
+                        <span class="export-icon">🌐</span>
+                        <span class="export-title">HTML File</span>
+                        <span class="export-desc">.html - Complete standalone file</span>
+                    </button>
+                    <button class="export-option" data-format="css">
+                        <span class="export-icon">🎨</span>
+                        <span class="export-title">CSS File</span>
+                        <span class="export-desc">.css - Styles only</span>
+                    </button>
+                    <button class="export-option" data-format="js">
+                        <span class="export-icon">📜</span>
+                        <span class="export-title">JavaScript File</span>
+                        <span class="export-desc">.js - Script only</span>
+                    </button>
+                    <button class="export-option" data-format="json">
+                        <span class="export-icon">📋</span>
+                        <span class="export-title">JSON Export</span>
+                        <span class="export-desc">.json - Code + metadata</span>
+                    </button>
+                    <button class="export-option" data-format="zip">
+                        <span class="export-icon">🗜️</span>
+                        <span class="export-title">ZIP Archive</span>
+                        <span class="export-desc">.zip - All files bundled</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -187,47 +246,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-<script>
-// Export functionality
-function exportData(format) {
-    const data = document.querySelector('textarea, input')?.value || document.body.innerText;
-    const blob = new Blob([data], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'export.' + format;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-</script>
-<script>
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.metaKey) {
-        switch(e.key) {
-            case 's': e.preventDefault(); console.log('Save shortcut'); break;
-            case 'r': e.preventDefault(); location.reload(); break;
-            case 'f': e.preventDefault(); document.querySelector('input')?.focus(); break;
-        }
-    }
-});
-</script>
-<script>
-// Templates gallery
-const templates = [
-    { name: 'Default', apply: () => {} },
-    { name: 'Minimal', apply: () => document.body.style.fontFamily = 'system-ui, sans-serif' }
-];
-const templateSelect = document.createElement('select');
-templates.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.name;
-    opt.textContent = t.name;
-    templateSelect.appendChild(opt);
-});
-templateSelect.onchange = (e) => {
-    const template = templates.find(t => t.name === e.target.value);
-    if (template) template.apply();
-};
-document.querySelector('.container')?.appendChild(templateSelect);
-</script>

@@ -27,10 +27,16 @@ const colorsTab = document.getElementById('colorsTab');
 const colorsGrid = document.getElementById('colorsGrid');
 const copyBtn = document.getElementById('copyBtn');
 const downloadBtn = document.getElementById('downloadBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportModal = document.getElementById('exportModal');
+const closeExportModal = document.getElementById('closeExportModal');
+const historyList = document.getElementById('historyList');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 // State
 let currentImage = null;
 let generatedCode = '';
+let currentOutputType = 'html';
 let extractedColors = [];
 
 // History storage key
@@ -77,6 +83,21 @@ function setupEventListeners() {
     // Copy and download
     copyBtn.addEventListener('click', copyCode);
     downloadBtn.addEventListener('click', downloadCode);
+    exportBtn.addEventListener('click', () => showModal(exportModal));
+    
+    // Export modal
+    closeExportModal.addEventListener('click', () => hideModal(exportModal));
+    exportModal.addEventListener('click', (e) => {
+        if (e.target === exportModal) hideModal(exportModal);
+    });
+    
+    // Export options
+    document.querySelectorAll('.export-option').forEach(btn => {
+        btn.addEventListener('click', handleExport);
+    });
+    
+    // History
+    clearHistoryBtn.addEventListener('click', clearHistoryAndRender);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboard);
@@ -212,6 +233,8 @@ function extractColorsFromImage(imageSrc) {
         if (extractedColors.length > 0) {
             colorsTab.hidden = false;
             renderColors();
+            // Show notification
+            showToast(`Extracted ${extractedColors.length} dominant colors!`, 'info');
         }
     };
     img.src = imageSrc;
@@ -307,6 +330,7 @@ async function generateCode() {
     const outputType = document.querySelector('input[name="outputType"]:checked').value;
     const includeResponsive = document.getElementById('includeResponsive').checked;
     const includeComments = document.getElementById('includeComments').checked;
+    currentOutputType = outputType;
 
     // Show loading
     loadingOverlay.hidden = false;
@@ -336,8 +360,14 @@ async function generateCode() {
     // Hide loading
     loadingOverlay.hidden = true;
 
-    // Save to history
-    saveToHistory(generatedCode, outputType);
+    // Save to history with image
+    saveToHistory({
+        code: generatedCode,
+        type: outputType,
+        image: currentImage,
+        colors: extractedColors
+    });
+    renderHistory();
 
     showToast('Code generated successfully!', 'success');
 }
@@ -941,14 +971,9 @@ function handleKeyboard(e) {
 }
 
 // History functions
-function saveToHistory(code, type) {
+function saveToHistory(entry) {
     try {
-        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-        const entry = {
-            code: code.slice(0, 5000), // Limit size
-            type: type,
-            timestamp: Date.now()
-        };
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
         history.unshift(entry);
         // Keep only MAX_HISTORY entries
         while (history.length > MAX_HISTORY) {
@@ -960,17 +985,153 @@ function saveToHistory(code, type) {
     }
 }
 
-function loadHistory() {
+function renderHistory() {
     try {
-        return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        
+        if (history.length === 0) {
+            historyList.innerHTML = '<p class="history-empty">No history yet. Generate some code to see it here! ✨</p>';
+            return;
+        }
+        
+        const typeIcons = { html: '🌐', react: '⚛️', vue: '🟢', tailwind: '🌊' };
+        
+        historyList.innerHTML = history.map((item, index) => {
+            const date = new Date(item.timestamp).toLocaleDateString();
+            const time = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return `
+                <div class="history-item" data-index="${index}">
+                    <img class="history-item-thumb" src="${item.image || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 60 60\'%3E%3Crect fill=\'%23333\' width=\'60\' height=\'60\'/%3E%3Ctext x=\'30\' y=\'35\' font-size=\'20\' text-anchor=\'middle\' fill=\'%23666\'%3E🖼️%3C/text%3E%3C/svg%3E'}" alt="Screenshot">
+                    <div class="history-item-info">
+                        <div class="history-item-title">${typeIcons[item.type] || '💻'} Generated ${item.type.toUpperCase()}</div>
+                        <div class="history-item-meta">
+                            <span>📅 ${date}</span>
+                            <span>🕐 ${time}</span>
+                            <span>${item.colors?.length || 0} colors</span>
+                        </div>
+                    </div>
+                    <div class="history-item-actions">
+                        <button class="history-item-btn" onclick="loadHistoryItem(${index})" title="Load">📂</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
-        return [];
+        historyList.innerHTML = '<p class="history-empty">Failed to load history.</p>';
     }
 }
 
-function clearHistory() {
+// Load history item (make global for onclick)
+window.loadHistoryItem = function(index) {
+    try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        const item = history[index];
+        if (!item) return;
+        
+        // Restore state
+        generatedCode = item.code;
+        currentImage = item.image;
+        extractedColors = item.colors || [];
+        currentOutputType = item.type;
+        
+        // Update UI
+        previewImage.src = currentImage;
+        previewSection.hidden = false;
+        optionsSection.hidden = false;
+        
+        codeOutput.textContent = generatedCode;
+        codeLang.textContent = getLangName(item.type);
+        const lines = generatedCode.split('\n').length;
+        const chars = generatedCode.length;
+        codeStats.textContent = `${lines} lines · ${chars} chars`;
+        
+        updatePreview(item.type, generatedCode);
+        
+        if (extractedColors.length > 0) {
+            colorsTab.hidden = false;
+            renderColors();
+        }
+        
+        resultSection.hidden = false;
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+        
+        showToast('Loaded from history!', 'success');
+    } catch (e) {
+        console.error('Failed to load history item:', e);
+        showToast('Failed to load history item', 'error');
+    }
+};
+
+function clearHistoryAndRender() {
     localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+    showToast('History cleared!', 'info');
+}
+
+// Export functionality
+function handleExport(e) {
+    const format = e.currentTarget.dataset.format;
+    if (!generatedCode) {
+        showToast('Generate code first!', 'error');
+        return;
+    }
+    
+    const type = currentOutputType;
+    let content = generatedCode;
+    let filename = `generated-component`;
+    let mimeType = 'text/plain';
+    
+    switch (format) {
+        case 'html':
+            mimeType = 'text/html';
+            filename += '.html';
+            break;
+        case 'css':
+            // Extract CSS from HTML
+            const cssMatch = generatedCode.match(/<style>([\s\S]*?)<\/style>/);
+            content = cssMatch ? cssMatch[1].trim() : '/* No CSS found */';
+            filename += '.css';
+            mimeType = 'text/css';
+            break;
+        case 'js':
+            // For React, save as is; for others, wrap in script
+            if (type === 'react') {
+                filename += '.jsx';
+            } else {
+                filename += '.js';
+            }
+            mimeType = 'text/javascript';
+            break;
+        case 'json':
+            content = JSON.stringify({
+                code: generatedCode,
+                type: type,
+                timestamp: Date.now(),
+                colors: extractedColors
+            }, null, 2);
+            filename += '.json';
+            mimeType = 'application/json';
+            break;
+        case 'zip':
+            showToast('ZIP export coming soon!', 'info');
+            hideModal(exportModal);
+            return;
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    hideModal(exportModal);
+    showToast(`Exported as ${format.toUpperCase()}!`, 'success');
 }
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    renderHistory();
+});

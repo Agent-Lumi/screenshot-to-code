@@ -8,10 +8,15 @@ Convert screenshots to HTML/CSS using AI
 
 ## ✨ Features
 - 🌓 **Dark/Light Mode Toggle** - Automatic system preference detection with smooth transitions
-- Clean, modern dark theme UI
-- Fully responsive
-- Works offline
-- Smart tool detection
+- Fully responsive design
+- Works offline (PWA-ready)
+- Paste images directly from clipboard (Ctrl+V)
+- Color extraction from uploaded images
+- Generate HTML, React, Vue, or Tailwind code
+- **NEW: Automatic history tracking** - saves last 10 generations to localStorage
+- **FIX: Loading overlay now properly hides after generation**
+- Keyboard shortcuts (press ? for help)
+- Live preview of generated code
 
 ## 🎨 Dark Mode
 

@@ -33,6 +33,10 @@ let currentImage = null;
 let generatedCode = '';
 let extractedColors = [];
 
+// History storage key
+const HISTORY_KEY = 'screenshotToCode_history';
+const MAX_HISTORY = 10;
+
 // Initialize
 function init() {
     setupEventListeners();
@@ -330,7 +334,10 @@ async function generateCode() {
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Hide loading
-    loadingOverlay.hidden = false;
+    loadingOverlay.hidden = true;
+
+    // Save to history
+    saveToHistory(generatedCode, outputType);
 
     showToast('Code generated successfully!', 'success');
 }
@@ -931,6 +938,38 @@ function handleKeyboard(e) {
     if (e.key === 'Escape') {
         hideModal(shortcutsModal);
     }
+}
+
+// History functions
+function saveToHistory(code, type) {
+    try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        const entry = {
+            code: code.slice(0, 5000), // Limit size
+            type: type,
+            timestamp: Date.now()
+        };
+        history.unshift(entry);
+        // Keep only MAX_HISTORY entries
+        while (history.length > MAX_HISTORY) {
+            history.pop();
+        }
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+        console.warn('Failed to save history:', e);
+    }
+}
+
+function loadHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
 }
 
 // Initialize app

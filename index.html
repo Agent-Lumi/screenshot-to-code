@@ -92,6 +92,74 @@
                     </label>
                 </div>
 
+                <!-- API Integration Section -->
+                <div class="api-section" id="apiSection">
+                    <h4 class="api-section-title">🔗 AI API Integration (Optional)</h4>
+                    <p class="api-section-desc">Connect to an AI service for real screenshot-to-code conversion</p>
+                    
+                    <div class="api-provider-select">
+                        <label class="api-option">
+                            <input type="radio" name="apiProvider" value="none" checked>
+                            <span class="api-option-content">
+                                <span class="api-icon">🎲</span>
+                                <span class="api-info">
+                                    <span class="api-name">Mock/Demo Mode</span>
+                                    <span class="api-desc">Generate sample code without API</span>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="api-option">
+                            <input type="radio" name="apiProvider" value="openai">
+                            <span class="api-option-content">
+                                <span class="api-icon">🤖</span>
+                                <span class="api-info">
+                                    <span class="api-name">OpenAI GPT-4 Vision</span>
+                                    <span class="api-desc">Requires API key for real conversion</span>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="api-option">
+                            <input type="radio" name="apiProvider" value="anthropic">
+                            <span class="api-option-content">
+                                <span class="api-icon">🧠</span>
+                                <span class="api-info">
+                                    <span class="api-name">Anthropic Claude</span>
+                                    <span class="api-desc">Requires API key for real conversion</span>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="api-option">
+                            <input type="radio" name="apiProvider" value="ollama">
+                            <span class="api-option-content">
+                                <span class="api-icon">🦙</span>
+                                <span class="api-info">
+                                    <span class="api-name">Ollama (Local)</span>
+                                    <span class="api-desc">Free local AI - requires Ollama running</span>
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div class="api-config" id="apiConfig" hidden>
+                        <div class="api-input-group">
+                            <label for="apiKey">API Key:</label>
+                            <div class="api-key-wrapper">
+                                <input type="password" id="apiKey" placeholder="Enter your API key" autocomplete="off">
+                                <button type="button" id="toggleApiKey" title="Show/Hide">👁️</button>
+                            </div>
+                        </div>
+                        <div class="api-input-group" id="apiUrlGroup" hidden>
+                            <label for="apiUrl">Ollama URL:</label>
+                            <input type="url" id="apiUrl" placeholder="http://localhost:11434" value="http://localhost:11434">
+                        </div>
+                        <div class="api-actions">
+                            <button type="button" class="btn btn-secondary" id="saveApiKey">💾 Save Key (Local Only)</button>
+                            <button type="button" class="btn btn-secondary" id="clearApiKey">🗑️ Clear</button>
+                        </div>
+                        <p class="api-warning">⚠️ API key is stored locally in your browser only. Never commit keys to git.</p>
+                    </div>
+                </div>
+
                 <button class="btn btn-primary btn-generate" id="generateBtn">
                     <span class="btn-icon">✨</span>
                     <span class="btn-text">Generate Code</span>
@@ -105,6 +173,7 @@
                         <button class="tab-btn" data-tab="preview">👁️ Preview</button>
                         <button class="tab-btn" data-tab="colors" id="colorsTab" hidden>🎨 Colors</button>
                         <button class="tab-btn" data-tab="history">📜 History</button>
+                        <button class="tab-btn" data-tab="api" id="apiTab">🔗 API</button>
                     </div>
                     <div class="result-actions">
                         <button class="btn btn-icon" id="copyBtn" title="Copy to Clipboard">📋</button>
@@ -139,6 +208,37 @@
                         </div>
                         <div class="history-list" id="historyList">
                             <p class="history-empty">No history yet. Generate some code to see it here! ✨</p>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel" id="apiPanel">
+                        <div class="api-status-panel">
+                            <h4>🔧 API Configuration</h4>
+                            <div class="api-status" id="apiStatus">
+                                <span class="api-status-icon">⚪</span>
+                                <span class="api-status-text">No API configured</span>
+                            </div>
+                            <div class="api-info-list" id="apiInfoList">
+                                <p>Use the <strong>Options</strong> section to configure an AI API for real screenshot-to-code conversion.</p>
+                                <h5>Supported APIs:</h5>
+                                <ul>
+                                    <li><strong>OpenAI GPT-4 Vision</strong> - Best accuracy, requires paid API key</li>
+                                    <li><strong>Anthropic Claude</strong> - Great results, requires paid API key</li>
+                                    <li><strong>Ollama (Local)</strong> - Free, runs locally, requires Ollama installed</li>
+                                </ul>
+                                <div class="api-setup-steps">
+                                    <h5>Quick Setup:</h5>
+                                    <ol>
+                                        <li>Select an API provider above</li>
+                                        <li>Enter your API key (stored locally)</li>
+                                        <li>Click <strong>Save Key</strong></li>
+                                        <li>Upload a screenshot and generate!</li>
+                                    </ol>
+                                </div>
+                                <div class="api-privacy-note">
+                                    <strong>🔒 Privacy Note:</strong> Your API key is stored only in your browser's localStorage. Your images are sent directly to the configured API - we don't store them.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

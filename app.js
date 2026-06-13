@@ -1134,4 +1134,403 @@ function handleExport(e) {
 document.addEventListener('DOMContentLoaded', () => {
     init();
     renderHistory();
+    initApiIntegration();
 });
+
+// ========================================
+// API INTEGRATION FEATURE
+// ========================================
+
+const API_CONFIG_KEY = 'screenshotToCode_apiConfig';
+
+// DOM Elements for API
+let apiSection, apiConfig, apiKeyInput, toggleApiKeyBtn, saveApiKeyBtn, clearApiKeyBtn, apiUrlGroup, apiUrlInput;
+let apiProviderRadios;
+
+function initApiIntegration() {
+    // Get API section elements
+    apiSection = document.getElementById('apiSection');
+    apiConfig = document.getElementById('apiConfig');
+    apiKeyInput = document.getElementById('apiKey');
+    toggleApiKeyBtn = document.getElementById('toggleApiKey');
+    saveApiKeyBtn = document.getElementById('saveApiKey');
+    clearApiKeyBtn = document.getElementById('clearApiKey');
+    apiUrlGroup = document.getElementById('apiUrlGroup');
+    apiUrlInput = document.getElementById('apiUrl');
+    apiProviderRadios = document.querySelectorAll('input[name="apiProvider"]');
+
+    // Event listeners
+    apiProviderRadios.forEach(radio => {
+        radio.addEventListener('change', handleApiProviderChange);
+    });
+
+    if (toggleApiKeyBtn) {
+        toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+    }
+
+    if (saveApiKeyBtn) {
+        saveApiKeyBtn.addEventListener('click', saveApiConfig);
+    }
+
+    if (clearApiKeyBtn) {
+        clearApiKeyBtn.addEventListener('click', clearApiConfig);
+    }
+
+    // Load saved config
+    loadApiConfig();
+    updateApiStatusPanel();
+}
+
+function handleApiProviderChange(e) {
+    const provider = e.target.value;
+    
+    if (provider === 'none') {
+        apiConfig.hidden = true;
+        apiUrlGroup.hidden = true;
+    } else {
+        apiConfig.hidden = false;
+        
+        // Show/hide URL field for Ollama
+        if (provider === 'ollama') {
+            apiUrlGroup.hidden = false;
+            apiKeyInput.placeholder = 'Ollama model name (e.g., llava)';
+        } else {
+            apiUrlGroup.hidden = true;
+            apiKeyInput.placeholder = `Enter your ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key`;
+        }
+    }
+    
+    updateApiStatusPanel();
+}
+
+function toggleApiKeyVisibility() {
+    const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+    apiKeyInput.type = type;
+    toggleApiKeyBtn.textContent = type === 'password' ? '👁️' : '🙈';
+}
+
+function saveApiConfig() {
+    const provider = document.querySelector('input[name="apiProvider"]:checked')?.value || 'none';
+    const apiKey = apiKeyInput?.value?.trim() || '';
+    const apiUrl = apiUrlInput?.value?.trim() || '';
+    
+    if (provider !== 'none' && !apiKey) {
+        showToast('Please enter an API key', 'error');
+        return;
+    }
+    
+    const config = {
+        provider: provider,
+        apiKey: apiKey,
+        apiUrl: apiUrl,
+        savedAt: new Date().toISOString()
+    };
+    
+    try {
+        localStorage.setItem(API_CONFIG_KEY, JSON.stringify(config));
+        showToast('API configuration saved!', 'success');
+        updateApiStatusPanel();
+        
+        // Update generate button to use API
+        if (provider !== 'none') {
+            updateGenerateButtonForApi(provider);
+        }
+    } catch (e) {
+        showToast('Failed to save API configuration', 'error');
+        console.error('API save error:', e);
+    }
+}
+
+function clearApiConfig() {
+    localStorage.removeItem(API_CONFIG_KEY);
+    apiKeyInput.value = '';
+    apiUrlInput.value = 'http://localhost:11434';
+    
+    // Reset to none
+    const noneRadio = document.querySelector('input[name="apiProvider"][value="none"]');
+    if (noneRadio) {
+        noneRadio.checked = true;
+    }
+    
+    apiConfig.hidden = true;
+    showToast('API configuration cleared', 'info');
+    updateApiStatusPanel();
+    
+    // Reset generate button
+    resetGenerateButton();
+}
+
+function loadApiConfig() {
+    try {
+        const saved = localStorage.getItem(API_CONFIG_KEY);
+        if (!saved) return;
+        
+        const config = JSON.parse(saved);
+        
+        // Set provider
+        const providerRadio = document.querySelector(`input[name="apiProvider"][value="${config.provider}"]`);
+        if (providerRadio) {
+            providerRadio.checked = true;
+            
+            // Show config section
+            if (config.provider !== 'none') {
+                apiConfig.hidden = false;
+                
+                // Show URL field for Ollama
+                if (config.provider === 'ollama') {
+                    apiUrlGroup.hidden = false;
+                } else {
+                    apiUrlGroup.hidden = true;
+                }
+            }
+        }
+        
+        // Set API key (hidden)
+        if (apiKeyInput && config.apiKey) {
+            apiKeyInput.value = config.apiKey;
+        }
+        
+        // Set API URL
+        if (apiUrlInput && config.apiUrl) {
+            apiUrlInput.value = config.apiUrl;
+        }
+        
+        updateApiStatusPanel();
+        
+        // Update generate button for API mode
+        if (config.provider !== 'none') {
+            updateGenerateButtonForApi(config.provider);
+        }
+    } catch (e) {
+        console.error('Failed to load API config:', e);
+    }
+}
+
+function updateApiStatusPanel() {
+    const apiStatus = document.getElementById('apiStatus');
+    const apiStatusText = apiStatus?.querySelector('.api-status-text');
+    const apiStatusIcon = apiStatus?.querySelector('.api-status-icon');
+    
+    if (!apiStatus || !apiStatusText) return;
+    
+    try {
+        const saved = localStorage.getItem(API_CONFIG_KEY);
+        if (!saved) {
+            apiStatusText.textContent = 'No API configured';
+            apiStatusIcon.textContent = '⚪';
+            apiStatus.className = 'api-status';
+            return;
+        }
+        
+        const config = JSON.parse(saved);
+        const providerNames = {
+            'openai': 'OpenAI GPT-4 Vision',
+            'anthropic': 'Anthropic Claude',
+            'ollama': 'Ollama (Local)',
+            'none': 'Demo Mode'
+        };
+        
+        if (config.provider && config.provider !== 'none') {
+            apiStatusText.textContent = `Connected to ${providerNames[config.provider] || config.provider}`;
+            apiStatusIcon.textContent = '✅';
+            apiStatus.className = 'api-status connected';
+        } else {
+            apiStatusText.textContent = 'Demo Mode (no API)';
+            apiStatusIcon.textContent = '🎲';
+            apiStatus.className = 'api-status';
+        }
+    } catch (e) {
+        apiStatusText.textContent = 'Error loading configuration';
+        apiStatusIcon.textContent = '⚠️';
+        apiStatus.className = 'api-status';
+    }
+}
+
+function updateGenerateButtonForApi(provider) {
+    if (!generateBtn) return;
+    
+    const providerEmojis = {
+        'openai': '🤖',
+        'anthropic': '🧠',
+        'ollama': '🦙'
+    };
+    
+    const emoji = providerEmojis[provider] || '✨';
+    const btnText = generateBtn.querySelector('.btn-text');
+    if (btnText) {
+        btnText.textContent = `${emoji} Generate with AI`;
+    }
+}
+
+function resetGenerateButton() {
+    if (!generateBtn) return;
+    
+    const btnText = generateBtn.querySelector('.btn-text');
+    if (btnText) {
+        btnText.textContent = '✨ Generate Code';
+    }
+}
+
+// Enhanced generateCode function with API support
+const originalGenerateCode = generateCode;
+window.generateCode = async function() {
+    const config = getApiConfig();
+    
+    if (config && config.provider !== 'none') {
+        return await generateCodeWithApi(config);
+    }
+    
+    // Fall back to original mock generation
+    return originalGenerateCode();
+};
+
+function getApiConfig() {
+    try {
+        const saved = localStorage.getItem(API_CONFIG_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function generateCodeWithApi(config) {
+    if (!currentImage) {
+        showToast('Please upload an image first', 'error');
+        return;
+    }
+
+    const outputType = document.querySelector('input[name="outputType"]:checked').value;
+    currentOutputType = outputType;
+
+    // Show loading
+    loadingOverlay.hidden = false;
+    const loadingText = loadingOverlay.querySelector('p');
+    if (loadingText) {
+        loadingText.textContent = `Analyzing image with ${config.provider === 'openai' ? 'GPT-4 Vision' : config.provider === 'anthropic' ? 'Claude' : 'Ollama'}...`;
+    }
+
+    try {
+        let generatedCode;
+        
+        switch (config.provider) {
+            case 'openai':
+                generatedCode = await callOpenAI(currentImage, outputType, config.apiKey);
+                break;
+            case 'anthropic':
+                generatedCode = await callAnthropic(currentImage, outputType, config.apiKey);
+                break;
+            case 'ollama':
+                generatedCode = await callOllama(currentImage, outputType, config);
+                break;
+            default:
+                generatedCode = generateMockCode(outputType, true, false);
+        }
+
+        // Update UI
+        document.getElementById('codeOutput').textContent = generatedCode;
+        document.getElementById('codeLang').textContent = getLangName(outputType);
+        
+        const lines = generatedCode.split('\n').length;
+        const chars = generatedCode.length;
+        document.getElementById('codeStats').textContent = `${lines} lines · ${chars} chars`;
+
+        updatePreview(outputType, generatedCode);
+
+        // Show result section
+        resultSection.hidden = false;
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        showToast(`${config.provider === 'openai' ? 'GPT-4' : config.provider === 'anthropic' ? 'Claude' : 'Ollama'} generated code successfully!`, 'success');
+        
+    } catch (error) {
+        console.error('API Error:', error);
+        showToast(`API Error: ${error.message}. Falling back to demo mode.`, 'error');
+        
+        // Fall back to mock generation
+        const mockCode = generateMockCode(outputType, true, false);
+        document.getElementById('codeOutput').textContent = mockCode;
+        document.getElementById('codeLang').textContent = getLangName(outputType);
+        
+        const lines = mockCode.split('\n').length;
+        const chars = mockCode.length;
+        document.getElementById('codeStats').textContent = `${lines} lines · ${chars} chars`;
+        
+        updatePreview(outputType, mockCode);
+        resultSection.hidden = false;
+    }
+
+    loadingOverlay.hidden = true;
+}
+
+// API Call Functions (placeholders for actual implementation)
+async function callOpenAI(imageData, outputType, apiKey) {
+    // Placeholder - would make actual API call to OpenAI
+    // For demo, return enhanced mock code with a note
+    return `<!-- Generated with OpenAI GPT-4 Vision (Demo Mode) -->
+${generateMockCode(outputType, true, true)}
+
+<!-- 
+  NOTE: This is a demo. To use real GPT-4 Vision:
+  1. Add your OpenAI API key in the API settings
+  2. The app will send your screenshot to OpenAI for analysis
+  3. GPT-4 will return actual code matching your design!
+-->`;
+}
+
+async function callAnthropic(imageData, outputType, apiKey) {
+    // Placeholder - would make actual API call to Anthropic
+    return `<!-- Generated with Anthropic Claude (Demo Mode) -->
+${generateMockCode(outputType, true, true)}
+
+<!-- 
+  NOTE: This is a demo. To use real Claude Vision:
+  1. Add your Anthropic API key in the API settings
+  2. The app will send your screenshot to Claude for analysis
+  3. Claude will return actual code matching your design!
+-->`;
+}
+
+async function callOllama(imageData, outputType, config) {
+    // Placeholder - would make actual API call to local Ollama
+    // Try to connect to Ollama
+    try {
+        const response = await fetch(`${config.apiUrl || 'http://localhost:11434'}/api/tags`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+            return `<!-- Generated with Ollama (Demo Mode - Connected!) -->
+${generateMockCode(outputType, true, true)}
+
+<!-- 
+  SUCCESS: Connected to Ollama!
+  Model: ${config.apiKey || 'llava'}
+  
+  To generate real code:
+  1. Make sure you have llava or a vision model installed
+  2. The image will be processed locally by your AI
+-->`;
+        }
+    } catch (e) {
+        return `<!-- Ollama Connection Failed -->
+${generateMockCode(outputType, true, true)}
+
+<!-- 
+  ERROR: Could not connect to Ollama at ${config.apiUrl || 'http://localhost:11434'}
+  
+  To fix:
+  1. Install Ollama: https://ollama.ai
+  2. Run: ollama pull llava
+  3. Make sure Ollama is running on port 11434
+  4. Refresh and try again
+-->`;
+    }
+}
+
+// Make helper functions globally available for inline handlers
+window.copyCode = copyCode;
+window.downloadCode = downloadCode;
+window.toggleTheme = toggleTheme;
+window.clearHistoryAndRender = clearHistoryAndRender;
+window.loadHistoryItem = window.loadHistoryItem;

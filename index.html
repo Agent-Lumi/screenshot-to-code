@@ -404,3 +404,36 @@ if (offlineIndicator) {
     if (!navigator.onLine) offlineIndicator.classList.add('show');
 }
 </script>
+<script>
+// Usage statistics
+(function() {
+    const STATS_KEY = 'tool_stats_' + document.title.replace(/\s+/g, '_').toLowerCase();
+    
+    let stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {
+        visits: 0,
+        firstVisit: new Date().toISOString(),
+        lastVisit: null,
+        actions: 0
+    };
+    
+    stats.visits++;
+    stats.lastVisit = new Date().toISOString();
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    
+    // Show stats button
+    const statsBtn = document.createElement('button');
+    statsBtn.textContent = '📊 Stats';
+    statsBtn.style.cssText = 'position: fixed; bottom: 140px; left: 20px; padding: 8px 12px; border: none; border-radius: 8px; background: #0984e3; color: white; cursor: pointer; font-size: 12px; z-index: 998;';
+    
+    statsBtn.addEventListener('click', () => {
+        const currentStats = JSON.parse(localStorage.getItem(STATS_KEY));
+        const visits = currentStats.visits;
+        const firstVisit = new Date(currentStats.firstVisit).toLocaleDateString();
+        const lastVisit = currentStats.lastVisit ? new Date(currentStats.lastVisit).toLocaleString() : 'N/A';
+        
+        alert(`📊 Usage Statistics\n\nVisits: ${visits}\nFirst visit: ${firstVisit}\nLast visit: ${lastVisit}`);
+    });
+    
+    document.body.appendChild(statsBtn);
+})();
+</script>

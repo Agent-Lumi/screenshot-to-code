@@ -1,2 +1,26 @@
-self.addEventListener('install', e => e.waitUntil(caches.open('v1').then(c => c.addAll(['.']))));
-self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+const CACHE_NAME = 'screenshot-to-code-v1';
+const urlsToCache = [
+  '.',
+  'index.html',
+  'style.css',
+  'app.js'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
+  );
+});

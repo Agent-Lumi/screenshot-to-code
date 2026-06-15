@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screenshot to Code | Made by Lumi</title>
     <link rel="stylesheet" href="style.css">
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6f42c1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Screenshot to Code">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%236f42c1' rx='24'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle'%3E💡%3C/text%3E%3C/svg%3E">
+    <script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js")</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offlineIndicator">⚠️ Offline Mode - Some features may be limited</div>
+    
     <!-- Theme change indicator -->
     <div class="theme-indicator" id="themeIndicator">☀️ Light mode enabled</div>
 
@@ -365,4 +376,31 @@ function exportData(format) {
     h1 { font-size: 1.5rem; }
     button { width: 100%; margin: 5px 0; }
 }
+
+/* Offline indicator styles */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ff6b6b;
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+    z-index: 9999;
+    display: none;
+}
+.offline-indicator.show {
+    display: block;
+}
 </style>
+<script>
+// Offline mode indicator
+const offlineIndicator = document.getElementById('offlineIndicator');
+if (offlineIndicator) {
+    window.addEventListener('online', () => offlineIndicator.classList.remove('show'));
+    window.addEventListener('offline', () => offlineIndicator.classList.add('show'));
+    if (!navigator.onLine) offlineIndicator.classList.add('show');
+}
+</script>
